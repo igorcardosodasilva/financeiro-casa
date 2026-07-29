@@ -1,0 +1,1144 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<!-- BUILD v11 -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#8b5cf6">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Casa">
+<title>Financeiro da Casa · Igor & Karol</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root {
+  --p: #8b5cf6; --t: #2dd4bf; --ok: #10b981; --no: #ef4444; --w: #f59e0b;
+  --bg: #ffffff; --bg2: #f4f4f8; --brd: #e5e7eb; --tx: #1e293b; --tx2: #475569; --tx3: #94a3b8;
+  --card: #ffffff; --sb: #faf9fd;
+}
+[data-theme="dark"] {
+  --bg: #0f0f14; --bg2: #1a1a22; --brd: #2a2a35; --tx: #f1f5f9; --tx2: #cbd5e1; --tx3: #64748b;
+  --card: #16161e; --sb: #131319;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--tx); font-size: 14px; }
+.app { display: flex; min-height: 100vh; }
+
+/* Sidebar */
+.sidebar { width: 220px; background: var(--sb); border-right: 1px solid var(--brd); padding: 16px 10px; position: fixed; height: 100vh; overflow-y: auto; }
+.logo { display: flex; align-items: center; gap: 10px; padding: 4px 8px 16px; }
+.logo-icon { width: 34px; height: 34px; border-radius: 9px; background: linear-gradient(135deg, var(--p), var(--t)); display: flex; align-items: center; justify-content: center; font-size: 18px; }
+.logo-txt { font-weight: 800; font-size: 15px; }
+.logo-sub { font-size: 9px; color: var(--tx3); font-weight: 600; }
+.sb-sec { font-size: 9px; color: var(--tx3); font-weight: 700; text-transform: uppercase; letter-spacing: .5px; padding: 12px 10px 4px; }
+.sb-i { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--tx2); transition: .15s; margin-bottom: 2px; }
+.sb-i:hover { background: var(--bg2); }
+.sb-i.on { background: linear-gradient(135deg, var(--p), var(--t)); color: #fff; }
+.sb-i svg { width: 17px; height: 17px; }
+
+/* Main */
+.main { flex: 1; margin-left: 220px; padding: 20px 24px; }
+.topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.topbar h1 { font-size: 20px; font-weight: 800; }
+.topbar .sub { font-size: 11px; color: var(--tx3); }
+.tb-r { display: flex; align-items: center; gap: 10px; }
+.thm { background: var(--bg2); border: 1px solid var(--brd); width: 34px; height: 34px; border-radius: 8px; cursor: pointer; color: var(--tx2); }
+
+/* Cards / KPI */
+.kg { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+.kp { background: var(--card); border: 1px solid var(--brd); border-radius: 12px; padding: 14px 16px; }
+.kp-l { font-size: 10px; color: var(--tx3); font-weight: 700; text-transform: uppercase; letter-spacing: .3px; }
+.kp-v { font-size: 22px; font-weight: 800; margin-top: 4px; }
+.kp-s { font-size: 10px; color: var(--tx3); margin-top: 2px; }
+.cc { background: var(--card); border: 1px solid var(--brd); border-radius: 12px; padding: 16px; }
+
+/* Colors */
+.c-ok { color: var(--ok); } .c-no { color: var(--no); } .c-p { color: var(--p); } .c-t { color: var(--t); } .c-w { color: var(--w); }
+
+/* Buttons */
+.btn { border: none; border-radius: 8px; padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer; transition: .15s; }
+.btn-p { background: linear-gradient(135deg, var(--p), var(--t)); color: #fff; }
+.btn-g { background: var(--bg2); color: var(--tx2); border: 1px solid var(--brd); }
+.btn-p:hover { opacity: .9; } .btn-g:hover { background: var(--brd); }
+.tb-btn { background: linear-gradient(135deg, var(--p), var(--t)); color: #fff; border: none; border-radius: 8px; padding: 9px 16px; font-size: 13px; font-weight: 700; cursor: pointer; }
+
+/* Table */
+.tc { overflow-x: auto; border-radius: 10px; border: 1px solid var(--brd); }
+table { width: 100%; border-collapse: collapse; background: var(--card); }
+th { text-align: left; font-size: 10px; color: var(--tx3); font-weight: 700; text-transform: uppercase; padding: 10px 12px; border-bottom: 1px solid var(--brd); background: var(--bg2); }
+td { padding: 11px 12px; border-bottom: 1px solid var(--brd); font-size: 13px; }
+tr:last-child td { border-bottom: none; }
+.emp { text-align: center; color: var(--tx3); padding: 24px; font-size: 12px; }
+.mn-f { font-family: 'SF Mono', Menlo, monospace; font-variant-numeric: tabular-nums; }
+
+/* Badge */
+.bd { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 10px; font-weight: 700; }
+.b-ok { background: #10b98122; color: var(--ok); } .b-no { background: #ef444422; color: var(--no); }
+.b-p { background: #8b5cf622; color: var(--p); } .b-t { background: #2dd4bf22; color: var(--t); }
+.b-w { background: #f59e0b22; color: var(--w); } .b-gy { background: var(--bg2); color: var(--tx2); }
+
+/* Filters */
+.flt-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.si { background: var(--bg2); border: 1px solid var(--brd); border-radius: 7px; padding: 7px 10px; font-size: 12px; color: var(--tx); }
+.tabs { display: flex; gap: 4px; flex-wrap: wrap; background: var(--bg2); padding: 4px; border-radius: 9px; }
+.tab { padding: 6px 14px; border-radius: 7px; font-size: 12px; font-weight: 600; cursor: pointer; color: var(--tx2); }
+.tab.on { background: var(--card); color: var(--p); box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+
+/* Modal */
+.mo { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 100; align-items: center; justify-content: center; padding: 20px; }
+.mo.on { display: flex; }
+.ml { background: var(--card); border-radius: 14px; width: 480px; max-width: 100%; max-height: 90vh; overflow-y: auto; }
+.mh { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--brd); }
+.mh h3 { font-size: 15px; font-weight: 700; }
+.mx { background: var(--bg2); border: none; width: 28px; height: 28px; border-radius: 7px; cursor: pointer; font-size: 16px; color: var(--tx2); }
+.mb-c { padding: 18px 20px; }
+.mf { display: flex; justify-content: flex-end; gap: 8px; padding: 14px 20px; border-top: 1px solid var(--brd); }
+.fr { display: flex; gap: 12px; margin-bottom: 12px; }
+.fr3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+.fg { flex: 1; margin-bottom: 12px; }
+.fg label { display: block; font-size: 10px; color: var(--tx3); font-weight: 700; margin-bottom: 4px; text-transform: uppercase; }
+.fg input, .fg select, .fg textarea { width: 100%; background: var(--bg2); border: 1px solid var(--brd); border-radius: 7px; padding: 9px 11px; font-size: 13px; color: var(--tx); }
+
+/* Action buttons */
+.ab { background: none; border: none; cursor: pointer; font-size: 14px; padding: 3px 6px; border-radius: 5px; color: var(--tx2); }
+.ab:hover { background: var(--bg2); }
+.ab.dl:hover { background: #ef444422; color: var(--no); }
+
+/* Bar chart */
+.bar-ch { display: flex; align-items: flex-end; justify-content: space-around; gap: 8px; padding: 10px 0; }
+.bar-it { flex: 1; }
+.bar-l { font-size: 9px; color: var(--tx3); margin-top: 5px; text-align: center; }
+
+/* Progress bar (metas) */
+.pbar { height: 10px; background: var(--bg2); border-radius: 6px; overflow: hidden; }
+.pbar > div { height: 100%; border-radius: 6px; transition: width .3s; }
+
+/* Page */
+.page { display: none; }
+.page.on { display: block; }
+
+/* Login */
+.login-box { max-width: 380px; margin: 80px auto; }
+
+/* Toast */
+.toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--tx); color: var(--bg); padding: 11px 20px; border-radius: 9px; font-size: 13px; font-weight: 600; z-index: 200; opacity: 0; transition: .3s; pointer-events: none; }
+.toast.show { opacity: 1; }
+.toast.ok { background: var(--ok); color: #fff; } .toast.no { background: var(--no); color: #fff; }
+
+/* Grids reutilizáveis (responsivos) */
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+
+/* Bottom nav (mobile) */
+.bottom-nav { display: none; position: fixed; bottom: 0; left: 0; right: 0; background: var(--card); border-top: 1px solid var(--brd); z-index: 90; padding: 6px 4px calc(6px + env(safe-area-inset-bottom)); }
+.bn-i { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 5px 2px; border-radius: 8px; cursor: pointer; color: var(--tx3); font-size: 8.5px; font-weight: 700; min-width: 0; }
+.bn-i svg { width: 20px; height: 20px; }
+.bn-i.on { color: var(--p); }
+.mob-only { display: none; }
+
+@media (max-width: 768px) {
+  .sidebar { display: none; }
+  .main { margin-left: 0; padding: 12px 12px 90px; }
+  .bottom-nav { display: flex; }
+  .mob-only { display: inline-flex; }
+  .topbar h1 { font-size: 17px; }
+  .kg { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .kp { padding: 11px 12px; }
+  .kp-v { font-size: 18px; }
+  .grid2, .grid3 { grid-template-columns: 1fr; gap: 8px; }
+  .fr { flex-direction: column; gap: 0; margin-bottom: 0; }
+  .fr3 { grid-template-columns: 1fr; gap: 0; margin-bottom: 0; }
+  .flt-row { gap: 6px; }
+  .tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; flex-wrap: nowrap; max-width: 100%; }
+  .tab { white-space: nowrap; padding: 6px 11px; font-size: 11px; }
+  .btn { padding: 8px 11px; font-size: 12px; }
+  .tb-btn { width: 100%; margin-left: 0 !important; }
+  .si { font-size: 16px; } /* evita zoom automático do iOS ao focar input */
+  .fg input, .fg select, .fg textarea { font-size: 16px; }
+  .mo { padding: 0; align-items: flex-end; }
+  .ml { width: 100%; max-height: 92vh; border-radius: 16px 16px 0 0; }
+  td, th { padding: 9px 8px; font-size: 12px; }
+}
+</style>
+</head>
+<body>
+<div id="toast" class="toast"></div>
+
+<!-- LOGIN -->
+<div id="login-screen" style="display:none">
+  <div class="login-box">
+    <div class="cc">
+      <div style="text-align:center;margin-bottom:20px">
+        <div class="logo-icon" style="margin:0 auto 10px;width:48px;height:48px;font-size:24px">🏠</div>
+        <h2 style="font-size:18px;font-weight:800">Financeiro da Casa</h2>
+        <p style="font-size:11px;color:var(--tx3)">Igor &amp; Karol</p>
+      </div>
+      <div class="fg"><label>Email</label><input id="login-email" type="email" placeholder="seu@email.com"></div>
+      <div class="fg"><label>Senha</label><input id="login-pass" type="password" placeholder="••••••••"></div>
+      <button class="btn btn-p" style="width:100%;margin-top:6px" onclick="doLogin()">Entrar</button>
+      <p id="login-err" style="font-size:11px;color:var(--no);margin-top:10px;text-align:center"></p>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div class="app" id="app-shell" style="display:none">
+  <div class="sidebar">
+    <div class="logo"><div class="logo-icon">🏠</div><div><div class="logo-txt">Casa</div><div class="logo-sub">Igor &amp; Karol</div></div></div>
+    <div class="sb-sec">Principal</div>
+    <div class="sb-i on" data-p="dash" onclick="go('dash')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg><span>Dashboard</span></div>
+    <div class="sb-i" data-p="lanc" onclick="go('lanc')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg><span>Lançamentos</span></div>
+    <div class="sb-i" data-p="parc" onclick="go('parc')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg><span>Parcelas</span></div>
+    <div class="sb-sec">Planejamento</div>
+    <div class="sb-i" data-p="meta" onclick="go('meta')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg><span>Metas</span></div>
+    <div class="sb-i" data-p="proj" onclick="go('proj')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg><span>Projeção</span></div>
+    <div class="sb-i" data-p="ano" onclick="go('ano')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>Resumo Anual</span></div>
+    <div class="sb-sec">Config</div>
+    <div class="sb-i" data-p="cat" onclick="go('cat')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg><span>Categorias</span></div>
+    <div class="sb-i" onclick="doLogout()" style="margin-top:20px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg><span>Sair</span></div>
+  </div>
+
+  <div class="main">
+    <div class="topbar">
+      <div><h1 id="pg-title">Dashboard</h1><div class="sub" id="pg-sub">Visão geral do mês</div></div>
+      <div class="tb-r">
+        <span style="font-size:9px;color:var(--tx3);font-family:monospace" id="build-chip">v11</span>
+        <button class="thm" onclick="toggleTheme()">◐</button>
+        <button class="thm mob-only" onclick="doLogout()" title="Sair">⎋</button>
+      </div>
+    </div>
+
+    <!-- Páginas injetadas via JS -->
+    <div class="page on" id="page-dash"></div>
+    <div class="page" id="page-lanc"></div>
+    <div class="page" id="page-parc"></div>
+    <div class="page" id="page-meta"></div>
+    <div class="page" id="page-proj"></div>
+    <div class="page" id="page-ano"></div>
+    <div class="page" id="page-cat"></div>
+  </div>
+</div>
+
+<!-- BOTTOM NAV (mobile) -->
+<div class="bottom-nav" id="bottom-nav">
+  <div class="bn-i on" data-p="dash" onclick="go('dash')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>Início</div>
+  <div class="bn-i" data-p="lanc" onclick="go('lanc')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>Lançar</div>
+  <div class="bn-i" data-p="parc" onclick="go('parc')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>Parcelas</div>
+  <div class="bn-i" data-p="meta" onclick="go('meta')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>Metas</div>
+  <div class="bn-i" data-p="proj" onclick="go('proj')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Projeção</div>
+  <div class="bn-i" data-p="ano" onclick="go('ano')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Anual</div>
+  <div class="bn-i" data-p="cat" onclick="go('cat')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>Categ.</div>
+</div>
+
+<!-- MODAIS -->
+<div class="mo" id="m-lanc"><div class="ml"><div class="mh"><h3 id="m-lanc-title">Novo Lançamento</h3><button class="mx" onclick="closeM('m-lanc')">×</button></div><div class="mb-c">
+  <input type="hidden" id="lanc-id">
+  <div class="fr">
+    <div class="fg"><label>Tipo</label><select id="lanc-kind" onchange="lancFillCats()"><option value="despesa">Despesa</option><option value="receita">Receita</option><option value="investimento">Investimento</option></select></div>
+    <div class="fg"><label>Quem</label><select id="lanc-person"><option>Igor</option><option>Karol</option><option>Ambos</option></select></div>
+  </div>
+  <div class="fr">
+    <div class="fg"><label>Data</label><input id="lanc-date" type="date"></div>
+    <div class="fg"><label>Valor (R$)</label><input id="lanc-amount" type="number" step="0.01" placeholder="0,00"></div>
+  </div>
+  <div class="fr">
+    <div class="fg"><label>Categoria</label><select id="lanc-cat"></select></div>
+    <div class="fg"><label>Classificação</label><select id="lanc-nature"><option>Variável</option><option>Fixa</option></select></div>
+  </div>
+  <div class="fr">
+    <div class="fg"><label>Recorrência</label><select id="lanc-rec" onchange="lancToggleMeses()"><option value="Não">Avulsa</option><option value="Mensal">Mensal (fixa, sem fim)</option><option value="Periodo">Por período (X meses)</option></select></div>
+  </div>
+  <div class="fr" id="lanc-meses-row" style="display:none">
+    <div class="fg"><label>Por quantos meses?</label><input id="lanc-meses" type="number" min="1" value="12" placeholder="Ex: 12"></div>
+    <div class="fg" style="display:flex;align-items:flex-end"><span style="font-size:11px;color:var(--tx3)" id="lanc-meses-hint">A partir da data, repete o mesmo valor por esse nº de meses e depois encerra.</span></div>
+  </div>
+  <div class="fg"><label>Descrição</label><input id="lanc-desc" placeholder="Ex: Mercado, aluguel..."></div>
+  <div class="fr">
+    <div class="fg"><label>Status</label><select id="lanc-status"><option>Pago</option><option>Pendente</option></select></div>
+    <div class="fg"><label>Vencimento (se pendente)</label><input id="lanc-due" type="date"></div>
+  </div>
+</div><div class="mf"><button class="btn btn-g" onclick="closeM('m-lanc')">Cancelar</button><button class="btn btn-p" onclick="saveLanc()">Salvar</button></div></div></div>
+
+<div class="mo" id="m-parc"><div class="ml"><div class="mh"><h3 id="m-parc-title">Novo Parcelamento</h3><button class="mx" onclick="closeM('m-parc')">×</button></div><div class="mb-c">
+  <input type="hidden" id="parc-id">
+  <div class="fg"><label>Descrição</label><input id="parc-desc" placeholder="Ex: Financiamento do Carro"></div>
+  <div class="fr">
+    <div class="fg"><label>Quem</label><select id="parc-person"><option>Igor</option><option>Karol</option><option>Ambos</option></select></div>
+    <div class="fg"><label>Categoria</label><select id="parc-cat"></select></div>
+  </div>
+  <div class="fr3">
+    <div class="fg"><label>Valor Total (R$)</label><input id="parc-total" type="number" step="0.01" placeholder="0,00" oninput="parcCalc()"></div>
+    <div class="fg"><label>Nº Parcelas</label><input id="parc-n" type="number" min="1" value="12" oninput="parcCalc()"></div>
+    <div class="fg"><label>Valor/Parcela</label><input id="parc-val" type="number" step="0.01" readonly style="opacity:.7"></div>
+  </div>
+  <div class="fr">
+    <div class="fg"><label>Data 1ª Parcela</label><input id="parc-start" type="date"></div>
+    <div class="fg"><label>Parcelas já pagas</label><input id="parc-paid" type="number" min="0" value="0"></div>
+  </div>
+  <p style="font-size:11px;color:var(--tx3)">💡 As parcelas mensais aparecem automaticamente nos meses correspondentes.</p>
+</div><div class="mf"><button class="btn btn-g" onclick="closeM('m-parc')">Cancelar</button><button class="btn btn-p" onclick="saveParc()">Salvar</button></div></div></div>
+
+<div class="mo" id="m-meta"><div class="ml"><div class="mh"><h3 id="m-meta-title">Nova Meta</h3><button class="mx" onclick="closeM('m-meta')">×</button></div><div class="mb-c">
+  <input type="hidden" id="meta-id">
+  <div class="fg"><label>Objetivo</label><input id="meta-title" placeholder="Ex: Viagem, reserva de emergência..."></div>
+  <div class="fr">
+    <div class="fg"><label>De quem</label><select id="meta-person"><option>Ambos</option><option>Igor</option><option>Karol</option></select></div>
+    <div class="fg"><label>Prazo (opcional)</label><input id="meta-date" type="date"></div>
+  </div>
+  <div class="fr">
+    <div class="fg"><label>Meta (R$)</label><input id="meta-target" type="number" step="0.01" placeholder="0,00"></div>
+    <div class="fg"><label>Já guardado (R$)</label><input id="meta-saved" type="number" step="0.01" placeholder="0,00"></div>
+  </div>
+  <div class="fg"><label>Notas</label><input id="meta-notes" placeholder="Opcional"></div>
+</div><div class="mf"><button class="btn btn-g" onclick="closeM('m-meta')">Cancelar</button><button class="btn btn-p" onclick="saveMeta()">Salvar</button></div></div></div>
+
+<div class="mo" id="m-cat"><div class="ml"><div class="mh"><h3>Nova Categoria</h3><button class="mx" onclick="closeM('m-cat')">×</button></div><div class="mb-c">
+  <div class="fr">
+    <div class="fg"><label>Nome</label><input id="cat-name" placeholder="Ex: Academia"></div>
+    <div class="fg"><label>Tipo</label><select id="cat-kind"><option value="despesa">Despesa</option><option value="receita">Receita</option><option value="investimento">Investimento</option></select></div>
+  </div>
+</div><div class="mf"><button class="btn btn-g" onclick="closeM('m-cat')">Cancelar</button><button class="btn btn-p" onclick="saveCat()">Salvar</button></div></div></div>
+
+<script>
+/* ═══ CONFIG ═══ */
+const SB_URL = 'https://djhesepzakaoavlrhtnh.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRqaGVzZXB6YWthb2F2bHJodG5oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU5NjcwMTQsImV4cCI6MjA5MTU0MzAxNH0.QH35qwBbikJ_JKSVtWQoq9s5j0zfC-PByffRl3xvmc8';
+const sb = window.supabase.createClient(SB_URL, SB_KEY);
+const PERSON_COLOR = { Igor: 'var(--p)', Karol: 'var(--t)', Ambos: 'var(--w)' };
+
+/* ═══ ESTADO ═══ */
+let entries = [], installments = [], goals = [], categories = [];
+let curPage = 'dash';
+let dashMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
+
+/* ═══ HELPERS ═══ */
+const f$ = v => 'R$ ' + (Math.round((+v || 0) * 100) / 100).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+const f2 = v => (Math.round((+v || 0) * 100) / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fd = d => { if (!d) return '—'; const [y, m, day] = d.split('-'); return `${day}/${m}/${y}`; };
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const monthLabel = mk => { const [y, m] = mk.split('-'); return ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][+m - 1] + '/' + y.slice(2); };
+function toast(msg, type) { const t = document.getElementById('toast'); t.textContent = msg; t.className = 'toast show ' + (type || ''); setTimeout(() => t.className = 'toast', 2500); }
+function toggleTheme() { const h = document.documentElement; const dark = h.getAttribute('data-theme') === 'dark'; h.setAttribute('data-theme', dark ? 'light' : 'dark'); }
+function closeM(id) { document.getElementById(id).classList.remove('on'); }
+function openM(id) { document.getElementById(id).classList.add('on'); }
+
+/* Parcelas expandidas em "ocorrências mensais" para um mês YYYY-MM */
+function installmentsForMonth(mk) {
+  const out = [];
+  installments.forEach(p => {
+    const [sy, sm] = p.start_date.split('-').map(Number);
+    for (let i = 0; i < p.installments; i++) {
+      const d = new Date(sy, (sm - 1) + i, 1);
+      const key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+      if (key === mk) {
+        out.push({ ...p, parcela_num: i + 1, occ_month: key, occ_value: p.installment_value, paid: (i + 1) <= (p.paid_installments || 0) });
+      }
+    }
+  });
+  return out;
+}
+
+/* ═══ AUTH ═══ */
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass = document.getElementById('login-pass').value;
+  const errEl = document.getElementById('login-err');
+  errEl.textContent = '';
+  const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+  if (error) { errEl.textContent = 'Email ou senha incorretos.'; return; }
+  await startApp();
+}
+async function doLogout() { await sb.auth.signOut(); location.reload(); }
+async function startApp() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app-shell').style.display = 'flex';
+  await loadAll();
+}
+async function checkSession() {
+  const { data } = await sb.auth.getSession();
+  if (data.session) { await startApp(); }
+  else { document.getElementById('login-screen').style.display = 'block'; }
+}
+
+/* ═══ LOAD ═══ */
+async function fetchAll(table, orderCol) {
+  let all = [], from = 0;
+  while (true) {
+    const { data, error } = await sb.from(table).select('*').order(orderCol, { ascending: false }).range(from, from + 999);
+    if (error) throw error;
+    all = all.concat(data);
+    if (data.length < 1000) break;
+    from += 1000;
+  }
+  return all;
+}
+async function loadAll() {
+  try {
+    const results = await Promise.allSettled([
+      fetchAll('pf_entries', 'entry_date'),
+      fetchAll('pf_installments', 'start_date'),
+      fetchAll('pf_goals', 'created_at'),
+      fetchAll('pf_categories', 'name'),
+    ]);
+    entries = results[0].status === 'fulfilled' ? results[0].value : [];
+    installments = results[1].status === 'fulfilled' ? results[1].value : [];
+    goals = results[2].status === 'fulfilled' ? results[2].value : [];
+    categories = results[3].status === 'fulfilled' ? results[3].value : [];
+    if (results.some(r => r.status === 'rejected')) toast('Algumas tabelas não carregaram — rode o SQL', 'no');
+  } catch (e) { toast('Erro ao carregar: ' + e.message, 'no'); }
+  renderAll();
+}
+function renderAll() { renderDash(); renderLanc(); renderParc(); renderMeta(); renderProj(); renderAno(); renderCat(); }
+
+/* ═══ NAVEGAÇÃO ═══ */
+const PAGE_TITLES = {
+  dash: ['Dashboard', 'Visão geral do mês'],
+  lanc: ['Lançamentos', 'Receitas e despesas'],
+  parc: ['Parcelas & Financiamentos', 'Contas parceladas'],
+  meta: ['Metas & Objetivos', 'Onde queremos chegar'],
+  proj: ['Projeção', 'O que sobra ao longo do tempo'],
+  ano: ['Resumo Anual', 'Os últimos 12 meses'],
+  cat: ['Categorias', 'Personalize seus tipos'],
+};
+function go(p) {
+  curPage = p;
+  document.querySelectorAll('.sb-i').forEach(el => el.classList.toggle('on', el.dataset.p === p));
+  document.querySelectorAll('.bn-i').forEach(el => el.classList.toggle('on', el.dataset.p === p));
+  document.querySelectorAll('.page').forEach(el => el.classList.remove('on'));
+  document.getElementById('page-' + p).classList.add('on');
+  document.getElementById('pg-title').textContent = PAGE_TITLES[p][0];
+  document.getElementById('pg-sub').textContent = PAGE_TITLES[p][1];
+  window.scrollTo(0, 0);
+}
+
+/* Retorna todos os "movimentos" de um mês: lançamentos avulsos + recorrentes + parcelas */
+function monthMovements(mk) {
+  const movs = [];
+  // Lançamentos avulsos do mês
+  entries.filter(e => e.recurring !== 'Mensal' && e.recurring !== 'Periodo' && (e.entry_date || '').slice(0, 7) === mk).forEach(e => {
+    movs.push({ kind: e.kind, person: e.person, category: e.category, description: e.description, amount: +e.amount, source: 'avulso', status: e.status || 'Pago', id: e.id });
+  });
+  // Recorrentes mensais fixas (sem fim): contam a partir do mês de início em diante
+  entries.filter(e => e.recurring === 'Mensal').forEach(e => {
+    if ((e.entry_date || '').slice(0, 7) <= mk) {
+      movs.push({ kind: e.kind, person: e.person, category: e.category, description: e.description + ' (fixo)', amount: +e.amount, source: 'recorrente', status: e.status || 'Pago', id: e.id });
+    }
+  });
+  // Recorrentes com PRAZO: repetem o mesmo valor por X meses e depois encerram
+  entries.filter(e => e.recurring === 'Periodo').forEach(e => {
+    const start = (e.entry_date || '').slice(0, 7);
+    const n = e.recur_months || 1;
+    if (start && start <= mk) {
+      // calcula quantos meses se passaram do início até o mês visualizado
+      const [sy, sm] = start.split('-').map(Number);
+      const [vy, vm] = mk.split('-').map(Number);
+      const diff = (vy - sy) * 12 + (vm - sm);
+      if (diff >= 0 && diff < n) {
+        movs.push({ kind: e.kind, person: e.person, category: e.category, description: `${e.description} (${diff + 1}/${n})`, amount: +e.amount, source: 'periodo', status: e.status || 'Pago', id: e.id });
+      }
+    }
+  });
+  // Parcelas do mês (sempre despesa) — status vem do controle de parcelas pagas
+  installmentsForMonth(mk).forEach(p => {
+    movs.push({ kind: 'despesa', person: p.person, category: p.category || 'Financiamento', description: `${p.description} (${p.parcela_num}/${p.installments})`, amount: +p.occ_value, source: 'parcela', status: p.paid ? 'Pago' : 'Pendente', parcId: p.id });
+  });
+  return movs;
+}
+
+/* ═══ DASHBOARD ═══ */
+function renderDash() {
+  const el = document.getElementById('page-dash');
+  const mk = dashMonth;
+  const movs = monthMovements(mk);
+  const rec = movs.filter(m => m.kind === 'receita').reduce((s, m) => s + m.amount, 0);
+  const desp = movs.filter(m => m.kind === 'despesa').reduce((s, m) => s + m.amount, 0);
+  const inv = movs.filter(m => m.kind === 'investimento').reduce((s, m) => s + m.amount, 0);
+  const saldo = rec - desp - inv;
+  // Por pessoa
+  const byP = who => {
+    const r = movs.filter(m => m.kind === 'receita' && (m.person === who || m.person === 'Ambos')).reduce((s, m) => s + (m.person === 'Ambos' ? m.amount / 2 : m.amount), 0);
+    const d = movs.filter(m => m.kind === 'despesa' && (m.person === who || m.person === 'Ambos')).reduce((s, m) => s + (m.person === 'Ambos' ? m.amount / 2 : m.amount), 0);
+    const i = movs.filter(m => m.kind === 'investimento' && (m.person === who || m.person === 'Ambos')).reduce((s, m) => s + (m.person === 'Ambos' ? m.amount / 2 : m.amount), 0);
+    return { r, d, i, saldo: r - d - i };
+  };
+  const igor = byP('Igor'), carol = byP('Karol');
+  const casa = { r: igor.r + carol.r, d: igor.d + carol.d, i: igor.i + carol.i, saldo: igor.saldo + carol.saldo };
+  // Pago vs Pendente (despesas do mês)
+  const despMovs = movs.filter(m => m.kind === 'despesa');
+  const despPago = despMovs.filter(m => m.status === 'Pago').reduce((s, m) => s + m.amount, 0);
+  const despPend = despMovs.filter(m => m.status === 'Pendente').reduce((s, m) => s + m.amount, 0);
+  const pctPago = desp > 0 ? (despPago / desp * 100) : 0;
+  // Fixa vs Variável (pelo campo nature dos lançamentos; parcelas contam como Fixa)
+  const natureOf = m => m.source === 'parcela' ? 'Fixa' : ((entries.find(e => e.id === m.id) || {}).nature || 'Variável');
+  const despFixaM = despMovs.filter(m => natureOf(m) === 'Fixa').reduce((s, m) => s + m.amount, 0);
+  const despVarM = despMovs.filter(m => natureOf(m) === 'Variável').reduce((s, m) => s + m.amount, 0);
+  // Despesas por categoria
+  const catMap = {};
+  movs.filter(m => m.kind === 'despesa').forEach(m => { catMap[m.category || 'Outros'] = (catMap[m.category || 'Outros'] || 0) + m.amount; });
+  const catRows = Object.entries(catMap).sort((a, b) => b[1] - a[1]);
+  const maxCat = Math.max(...catRows.map(c => c[1]), 1);
+
+  el.innerHTML = `
+    <div class="flt-row" style="margin-bottom:14px">
+      <button class="btn btn-g" onclick="dashNav(-1)">← Mês anterior</button>
+      <strong style="font-size:15px;min-width:90px;text-align:center">${monthLabel(mk)}</strong>
+      <button class="btn btn-g" onclick="dashNav(1)">Próximo mês →</button>
+      <button class="btn btn-g" onclick="dashToday()">Hoje</button>
+    </div>
+    <div class="kg">
+      <div class="kp"><div class="kp-l">Receitas</div><div class="kp-v c-ok">${f$(rec)}</div></div>
+      <div class="kp"><div class="kp-l">Despesas</div><div class="kp-v c-no">${f$(desp)}</div></div>
+      <div class="kp"><div class="kp-l">📈 Investido</div><div class="kp-v c-p">${f$(inv)}</div><div class="kp-s">${rec > 0 ? (inv / rec * 100).toFixed(0) + '% da receita' : ''}</div></div>
+      <div class="kp"><div class="kp-l">Saldo do Mês</div><div class="kp-v" style="color:${saldo >= 0 ? 'var(--ok)' : 'var(--no)'}">${f$(saldo)}</div><div class="kp-s">${saldo >= 0 ? 'sobrou' : 'faltou'} (após investir)</div></div>
+      <div class="kp"><div class="kp-l">Comprometido em Parcelas</div><div class="kp-v c-w">${f$(installmentsForMonth(mk).reduce((s, p) => s + (+p.occ_value), 0))}</div></div>
+    </div>
+    <div class="grid3" style="margin-top:14px">
+      <div class="cc" style="border-left:3px solid var(--p)">
+        <div style="font-size:13px;font-weight:700;margin-bottom:10px">👤 Igor</div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px"><span style="color:var(--tx3)">Receitas</span><span class="c-ok mn-f">${f$(igor.r)}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px"><span style="color:var(--tx3)">Despesas</span><span class="c-no mn-f">${f$(igor.d)}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px"><span style="color:var(--tx3)">📈 Investido</span><span class="c-p mn-f">${f$(igor.i)}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:700;border-top:1px solid var(--brd);padding-top:6px"><span>Saldo</span><span class="mn-f" style="color:${igor.saldo >= 0 ? 'var(--ok)' : 'var(--no)'}">${f$(igor.saldo)}</span></div>
+      </div>
+      <div class="cc" style="border-left:3px solid var(--t)">
+        <div style="font-size:13px;font-weight:700;margin-bottom:10px">👤 Karol</div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px"><span style="color:var(--tx3)">Receitas</span><span class="c-ok mn-f">${f$(carol.r)}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px"><span style="color:var(--tx3)">Despesas</span><span class="c-no mn-f">${f$(carol.d)}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px"><span style="color:var(--tx3)">📈 Investido</span><span class="c-p mn-f">${f$(carol.i)}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:700;border-top:1px solid var(--brd);padding-top:6px"><span>Saldo</span><span class="mn-f" style="color:${carol.saldo >= 0 ? 'var(--ok)' : 'var(--no)'}">${f$(carol.saldo)}</span></div>
+      </div>
+      <div class="cc" style="border-left:3px solid var(--w);background:linear-gradient(180deg,#f59e0b0a,transparent)">
+        <div style="font-size:13px;font-weight:700;margin-bottom:10px">🏠 Casa (Igor + Karol)</div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px"><span style="color:var(--tx3)">Receitas</span><span class="c-ok mn-f">${f$(casa.r)}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px"><span style="color:var(--tx3)">Despesas</span><span class="c-no mn-f">${f$(casa.d)}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px"><span style="color:var(--tx3)">📈 Investido</span><span class="c-p mn-f">${f$(casa.i)}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:700;border-top:1px solid var(--brd);padding-top:6px"><span>Saldo</span><span class="mn-f" style="color:${casa.saldo >= 0 ? 'var(--ok)' : 'var(--no)'}">${f$(casa.saldo)}</span></div>
+      </div>
+    </div>
+    <div class="cc" style="margin-top:14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <h3 style="font-size:13px;font-weight:700">💳 Situação das Despesas do Mês</h3>
+        <span style="font-size:11px;color:var(--tx3)">${pctPago.toFixed(0)}% quitado</span>
+      </div>
+      <div style="display:flex;height:26px;border-radius:8px;overflow:hidden;background:var(--bg2);margin-bottom:12px">
+        ${despPago > 0 ? `<div style="width:${pctPago}%;background:var(--ok);display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:700" title="Pago">${pctPago >= 15 ? f$(despPago) : ''}</div>` : ''}
+        ${despPend > 0 ? `<div style="width:${100 - pctPago}%;background:var(--w);display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:700" title="Pendente">${(100 - pctPago) >= 15 ? f$(despPend) : ''}</div>` : ''}
+      </div>
+      <div class="grid2">
+        <div style="border:1px solid var(--brd);border-radius:8px;padding:10px 12px;border-left:3px solid var(--ok)">
+          <div style="font-size:10px;color:var(--tx3);font-weight:700">✓ JÁ PAGO</div>
+          <div style="font-size:18px;font-weight:800" class="c-ok">${f$(despPago)}</div>
+          <div style="font-size:10px;color:var(--tx3)">${despMovs.filter(m => m.status === 'Pago').length} conta(s)</div>
+        </div>
+        <div style="border:1px solid var(--brd);border-radius:8px;padding:10px 12px;border-left:3px solid var(--w)">
+          <div style="font-size:10px;color:var(--tx3);font-weight:700">⏳ FALTA PAGAR</div>
+          <div style="font-size:18px;font-weight:800" class="c-w">${f$(despPend)}</div>
+          <div style="font-size:10px;color:var(--tx3)">${despMovs.filter(m => m.status === 'Pendente').length} conta(s)</div>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--tx3);margin-top:10px;padding-top:10px;border-top:1px solid var(--brd)">
+        <span>📌 Fixas: <strong class="c-p">${f$(despFixaM)}</strong> (${desp > 0 ? (despFixaM / desp * 100).toFixed(0) : 0}%)</span>
+        <span>📊 Variáveis: <strong>${f$(despVarM)}</strong> (${desp > 0 ? (despVarM / desp * 100).toFixed(0) : 0}%)</span>
+      </div>
+    </div>
+    <div class="cc" style="margin-top:14px">
+      <h3 style="font-size:13px;font-weight:700;margin-bottom:12px">Despesas por Categoria</h3>
+      ${catRows.length ? catRows.map(([cat, val]) => `
+        <div style="margin-bottom:9px">
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px"><span>${esc(cat)}</span><span class="mn-f c-no">${f$(val)}</span></div>
+          <div class="pbar"><div style="width:${val / maxCat * 100}%;background:var(--no)"></div></div>
+        </div>`).join('') : '<div class="emp">Nenhuma despesa neste mês</div>'}
+    </div>
+    ${renderContasPagar(mk)}`;
+}
+
+/* Contas a pagar: despesas pendentes com vencimento no mês (ou sem venc, pela data) */
+function renderContasPagar(mk) {
+  const hoje = new Date().toISOString().split('T')[0];
+  const pend = entries.filter(e => e.kind === 'despesa' && e.status === 'Pendente' && e.recurring !== 'Mensal')
+    .filter(e => {
+      const ref = e.due_date || e.entry_date || '';
+      return ref.slice(0, 7) === mk;
+    })
+    .sort((a, b) => (a.due_date || a.entry_date || '').localeCompare(b.due_date || b.entry_date || ''));
+  if (!pend.length) return '';
+  const totalPend = pend.reduce((s, e) => s + +e.amount, 0);
+  const vencidas = pend.filter(e => (e.due_date || e.entry_date || '') < hoje);
+  return `
+    <div class="cc" style="margin-top:14px;border-left:3px solid ${vencidas.length ? 'var(--no)' : 'var(--w)'}">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <h3 style="font-size:13px;font-weight:700">📌 Contas a Pagar${vencidas.length ? ` · <span class="c-no">${vencidas.length} vencida(s)</span>` : ''}</h3>
+        <span style="font-size:13px;font-weight:700" class="c-w">${f$(totalPend)}</span>
+      </div>
+      ${pend.map(e => {
+        const ref = e.due_date || e.entry_date || '';
+        const venc = ref < hoje;
+        const hj = ref === hoje;
+        return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--brd)">
+          <div>
+            <span style="font-size:13px;font-weight:600">${esc(e.description || e.category || 'Conta')}</span>
+            <span class="bd" style="background:${PERSON_COLOR[e.person]}22;color:${PERSON_COLOR[e.person]};margin-left:6px;font-size:8px">${esc(e.person)}</span>
+            <div style="font-size:10px;color:${venc ? 'var(--no)' : (hj ? 'var(--w)' : 'var(--tx3)')}">
+              ${venc ? '⚠ Venceu ' : (hj ? '⏰ Vence hoje · ' : 'Vence ')}${e.due_date ? fd(e.due_date) : fd(e.entry_date)}
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <span class="mn-f c-no" style="font-weight:700">${f$(e.amount)}</span>
+            <button class="btn btn-p" style="font-size:10px;padding:4px 10px" onclick="markPaid(${e.id})">✓ Pagar</button>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+}
+
+async function markPaid(id) {
+  const { error } = await sb.from('pf_entries').update({ status: 'Pago' }).eq('id', id);
+  if (error) { toast('Erro: ' + error.message, 'no'); return; }
+  await loadAll(); toast('✓ Marcada como paga', 'ok');
+}
+function dashNav(delta) {
+  const [y, m] = dashMonth.split('-').map(Number);
+  const d = new Date(y, (m - 1) + delta, 1);
+  dashMonth = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+  renderDash();
+}
+function dashToday() { dashMonth = new Date().toISOString().slice(0, 7); renderDash(); }
+
+/* ═══ LANÇAMENTOS ═══ */
+let lancFilter = { kind: 'all', person: 'all', status: 'all', nature: 'all', search: '', month: new Date().toISOString().slice(0, 7) };
+function renderLanc() {
+  const el = document.getElementById('page-lanc');
+  let list;
+  if (lancFilter.month === 'all') {
+    // Visão "Tudo": mostra os registros-base como estão no banco
+    list = entries.map(e => ({ ...e, _virtual: false }));
+  } else {
+    // Visão por mês: expande recorrências em ocorrências virtuais do mês
+    const mk = lancFilter.month;
+    const [vy, vm] = mk.split('-').map(Number);
+    list = [];
+    entries.forEach(e => {
+      const startMk = (e.entry_date || '').slice(0, 7);
+      const day = (e.entry_date || '').slice(8, 10) || '01';
+      if (e.recurring === 'Mensal') {
+        if (startMk && startMk <= mk) {
+          const occDate = mk + '-' + day;
+          const isOrigin = startMk === mk;
+          list.push({ ...e, entry_date: occDate, _virtual: !isOrigin, _occ: '∞' });
+        }
+      } else if (e.recurring === 'Periodo') {
+        if (startMk && startMk <= mk) {
+          const [sy, sm] = startMk.split('-').map(Number);
+          const diff = (vy - sy) * 12 + (vm - sm);
+          const n = e.recur_months || 1;
+          if (diff >= 0 && diff < n) {
+            const occDate = mk + '-' + day;
+            list.push({ ...e, entry_date: occDate, _virtual: diff > 0, _occ: `${diff + 1}/${n}` });
+          }
+        }
+      } else {
+        if (startMk === mk) list.push({ ...e, _virtual: false });
+      }
+    });
+  }
+  if (lancFilter.kind !== 'all') list = list.filter(e => e.kind === lancFilter.kind);
+  if (lancFilter.person !== 'all') list = list.filter(e => e.person === lancFilter.person);
+  if (lancFilter.status !== 'all') list = list.filter(e => (e.status || 'Pago') === lancFilter.status);
+  if (lancFilter.nature !== 'all') list = list.filter(e => (e.nature || 'Variável') === lancFilter.nature);
+  if (lancFilter.search) list = list.filter(e => (e.description || '').toLowerCase().includes(lancFilter.search.toLowerCase()) || (e.category || '').toLowerCase().includes(lancFilter.search.toLowerCase()));
+  list.sort((a, b) => (b.entry_date || '').localeCompare(a.entry_date || ''));
+
+  el.innerHTML = `
+    <div class="flt-row" style="margin-bottom:12px">
+      <button class="btn btn-g" onclick="lancNavMonth(-1)" ${lancFilter.month === 'all' ? 'disabled style="opacity:.4"' : ''}>← Mês anterior</button>
+      <strong style="font-size:15px;min-width:100px;text-align:center">${lancFilter.month === 'all' ? 'Todos os meses' : monthLabel(lancFilter.month)}</strong>
+      <button class="btn btn-g" onclick="lancNavMonth(1)" ${lancFilter.month === 'all' ? 'disabled style="opacity:.4"' : ''}>Próximo mês →</button>
+      <button class="btn ${lancFilter.month === new Date().toISOString().slice(0,7) ? 'btn-p' : 'btn-g'}" onclick="lancSetMonth('${new Date().toISOString().slice(0,7)}')">Este mês</button>
+      <button class="btn ${lancFilter.month === 'all' ? 'btn-p' : 'btn-g'}" onclick="lancSetMonth('all')">Tudo</button>
+      ${(() => { const r = list.filter(e => e.kind === 'receita').reduce((s, e) => s + +e.amount, 0); const d = list.filter(e => e.kind === 'despesa').reduce((s, e) => s + +e.amount, 0); return `<span style="margin-left:auto;font-size:11px;color:var(--tx3)">Receitas <strong class="c-ok">${f$(r)}</strong> · Despesas <strong class="c-no">${f$(d)}</strong> · ${list.length} lançamento(s)</span>`; })()}
+    </div>
+    <div class="flt-row" style="margin-bottom:14px">
+      <div class="tabs">
+        <div class="tab ${lancFilter.kind === 'all' ? 'on' : ''}" onclick="lancSetFilter('kind','all')">Tudo</div>
+        <div class="tab ${lancFilter.kind === 'receita' ? 'on' : ''}" onclick="lancSetFilter('kind','receita')">Receitas</div>
+        <div class="tab ${lancFilter.kind === 'despesa' ? 'on' : ''}" onclick="lancSetFilter('kind','despesa')">Despesas</div>
+        <div class="tab ${lancFilter.kind === 'investimento' ? 'on' : ''}" onclick="lancSetFilter('kind','investimento')">📈 Invest.</div>
+      </div>
+      <div class="tabs">
+        <div class="tab ${lancFilter.person === 'all' ? 'on' : ''}" onclick="lancSetFilter('person','all')">Todos</div>
+        <div class="tab ${lancFilter.person === 'Igor' ? 'on' : ''}" onclick="lancSetFilter('person','Igor')">Igor</div>
+        <div class="tab ${lancFilter.person === 'Karol' ? 'on' : ''}" onclick="lancSetFilter('person','Karol')">Karol</div>
+        <div class="tab ${lancFilter.person === 'Ambos' ? 'on' : ''}" onclick="lancSetFilter('person','Ambos')">Ambos</div>
+      </div>
+      <div class="tabs">
+        <div class="tab ${lancFilter.status === 'all' ? 'on' : ''}" onclick="lancSetFilter('status','all')">Todos</div>
+        <div class="tab ${lancFilter.status === 'Pago' ? 'on' : ''}" onclick="lancSetFilter('status','Pago')">✓ Pagos</div>
+        <div class="tab ${lancFilter.status === 'Pendente' ? 'on' : ''}" onclick="lancSetFilter('status','Pendente')">⏳ Pendentes</div>
+      </div>
+      <div class="tabs">
+        <div class="tab ${lancFilter.nature === 'all' ? 'on' : ''}" onclick="lancSetFilter('nature','all')">Todas</div>
+        <div class="tab ${lancFilter.nature === 'Fixa' ? 'on' : ''}" onclick="lancSetFilter('nature','Fixa')">📌 Fixas</div>
+        <div class="tab ${lancFilter.nature === 'Variável' ? 'on' : ''}" onclick="lancSetFilter('nature','Variável')">📊 Variáveis</div>
+      </div>
+      <input type="text" class="si" placeholder="🔍 Buscar..." value="${esc(lancFilter.search)}" oninput="lancFilter.search=this.value;renderLanc()" style="width:160px">
+      <button class="tb-btn" style="margin-left:auto" onclick="openLancModal()">+ Lançamento</button>
+    </div>
+    <div class="tc"><table><thead><tr><th>Data</th><th>Tipo</th><th>Quem</th><th>Categoria</th><th>Descrição</th><th style="text-align:right">Valor</th><th>Status</th><th>Ações</th></tr></thead><tbody>
+    ${list.length ? list.map(e => `<tr>
+      <td>${fd(e.entry_date)}</td>
+      <td>${e.kind === 'receita' ? '<span class="bd b-ok">Receita</span>' : (e.kind === 'investimento' ? '<span class="bd b-p">📈 Invest.</span>' : '<span class="bd b-no">Despesa</span>')}</td>
+      <td><span class="bd" style="background:${PERSON_COLOR[e.person]}22;color:${PERSON_COLOR[e.person]}">${esc(e.person)}</span></td>
+      <td style="font-size:12px">${esc(e.category || '—')} <span class="bd ${(e.nature || 'Variável') === 'Fixa' ? 'b-p' : 'b-gy'}" style="font-size:8px">${(e.nature || 'Variável') === 'Fixa' ? 'FIXA' : 'VAR'}</span>${e.recurring === 'Mensal' ? ' <span class="bd b-t" style="font-size:8px">∞</span>' : (e.recurring === 'Periodo' ? ` <span class="bd b-t" style="font-size:8px">${e.recur_months || '?'}M</span>` : '')}</td>
+      <td style="font-size:12px">${esc(e.description || '—')}${e._occ && e._occ !== '∞' ? ` <span class="bd b-t" style="font-size:8px">${e._occ}</span>` : ''}${e._virtual ? ' <span class="bd b-gy" style="font-size:8px" title="Ocorrência recorrente deste mês">↻</span>' : ''}</td>
+      <td class="mn-f" style="text-align:right;color:${e.kind === 'receita' ? 'var(--ok)' : (e.kind === 'investimento' ? 'var(--p)' : 'var(--no)')}">${f2(e.amount)}</td>
+      <td>${e.status === 'Pago' ? '<span class="bd b-ok">Pago</span>' : `<span class="bd b-w">Pendente</span>${e.due_date ? `<br><span style="font-size:8px;color:var(--tx3)">vence ${fd(e.due_date)}</span>` : ''}`}</td>
+      <td style="white-space:nowrap">${e.status === 'Pendente' && e.kind === 'despesa' ? `<button class="ab" onclick="markPaid(${e.id})" title="Marcar paga" style="color:var(--ok)">✓</button>` : ''}<button class="ab" onclick="editLanc(${e.id})">✎</button><button class="ab dl" onclick="delLanc(${e.id})">×</button></td>
+    </tr>`).join('') : '<tr><td colspan="8" class="emp">Nenhum lançamento</td></tr>'}
+    </tbody></table></div>`;
+}
+function lancSetFilter(k, v) { lancFilter[k] = v; renderLanc(); }
+function lancSetMonth(mk) { lancFilter.month = mk; renderLanc(); }
+function lancNavMonth(delta) {
+  if (lancFilter.month === 'all') return;
+  const [y, m] = lancFilter.month.split('-').map(Number);
+  const d = new Date(y, (m - 1) + delta, 1);
+  lancFilter.month = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+  renderLanc();
+}
+
+/* ═══ CATEGORIAS ═══ */
+function renderCat() {
+  const el = document.getElementById('page-cat');
+  const desp = categories.filter(c => c.kind === 'despesa');
+  const rec = categories.filter(c => c.kind === 'receita');
+  const inv = categories.filter(c => c.kind === 'investimento');
+  const catCard = (title, list, color) => `
+    <div class="cc">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <h3 style="font-size:13px;font-weight:700">${title}</h3>
+      </div>
+      ${list.length ? list.map(c => `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--brd)">
+        <span style="font-size:13px"><span class="bd" style="background:${color}22;color:${color};margin-right:8px">●</span>${esc(c.name)}</span>
+        <button class="ab dl" onclick="delCat(${c.id})">×</button>
+      </div>`).join('') : '<div class="emp">Nenhuma</div>'}
+    </div>`;
+  el.innerHTML = `
+    <div style="margin-bottom:14px"><button class="tb-btn" onclick="openM('m-cat')">+ Categoria</button></div>
+    <div class="grid3">
+      ${catCard('💸 Despesas', desp, 'var(--no)')}
+      ${catCard('💰 Receitas', rec, 'var(--ok)')}
+      ${catCard('📈 Investimentos', inv, 'var(--p)')}
+    </div>`;
+}
+
+/* ═══ PARCELAS ═══ */
+function renderParc() {
+  const el = document.getElementById('page-parc');
+  const todayKey = new Date().toISOString().slice(0, 7);
+  const rows = installments.map(p => {
+    const pago = p.paid_installments || 0;
+    const restantes = p.installments - pago;
+    const valRestante = restantes * p.installment_value;
+    // Mês da última parcela
+    const [sy, sm] = p.start_date.split('-').map(Number);
+    const lastD = new Date(sy, (sm - 1) + (p.installments - 1), 1);
+    const lastKey = lastD.getFullYear() + '-' + String(lastD.getMonth() + 1).padStart(2, '0');
+    return { p, pago, restantes, valRestante, lastKey, pct: p.installments ? pago / p.installments * 100 : 0 };
+  });
+  const totalMensal = installmentsForMonth(todayKey).reduce((s, p) => s + (+p.occ_value), 0);
+  const totalRestante = rows.reduce((s, r) => s + r.valRestante, 0);
+
+  el.innerHTML = `
+    <div class="kg" style="margin-bottom:14px">
+      <div class="kp"><div class="kp-l">Parcelas Ativas</div><div class="kp-v">${rows.filter(r => r.restantes > 0).length}</div></div>
+      <div class="kp"><div class="kp-l">Compromisso Este Mês</div><div class="kp-v c-w">${f$(totalMensal)}</div></div>
+      <div class="kp"><div class="kp-l">Falta Pagar (total)</div><div class="kp-v c-no">${f$(totalRestante)}</div></div>
+    </div>
+    <div style="margin-bottom:14px"><button class="tb-btn" onclick="openParcModal()">+ Parcelamento</button></div>
+    ${rows.length ? rows.map(r => `
+      <div class="cc" style="margin-bottom:10px;border-left:3px solid ${PERSON_COLOR[r.p.person]}">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+          <div>
+            <div style="font-size:14px;font-weight:700">${esc(r.p.description)}</div>
+            <div style="font-size:10px;color:var(--tx3)">
+              <span class="bd" style="background:${PERSON_COLOR[r.p.person]}22;color:${PERSON_COLOR[r.p.person]}">${esc(r.p.person)}</span>
+              ${r.p.category ? '· ' + esc(r.p.category) : ''} · ${f$(r.p.installment_value)}/mês
+            </div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:13px;font-weight:700">${r.pago}/${r.p.installments} pagas</div>
+            <div style="font-size:10px;color:var(--tx3)">termina em ${monthLabel(r.lastKey)}</div>
+          </div>
+        </div>
+        <div class="pbar" style="margin-bottom:6px"><div style="width:${r.pct}%;background:linear-gradient(90deg,var(--p),var(--t))"></div></div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--tx3)">
+          <span>Total: ${f$(r.p.total_amount)}</span>
+          <span>Falta: <strong class="c-no">${f$(r.valRestante)}</strong></span>
+          <span style="display:flex;gap:6px">
+            <button class="ab" onclick="parcPay(${r.p.id})" title="Registrar +1 parcela paga">✓ Pagar 1</button>
+            <button class="ab" onclick="editParc(${r.p.id})">✎</button>
+            <button class="ab dl" onclick="delParc(${r.p.id})">×</button>
+          </span>
+        </div>
+      </div>`).join('') : '<div class="cc emp">Nenhum parcelamento cadastrado</div>'}`;
+}
+
+/* ═══ METAS ═══ */
+function renderMeta() {
+  const el = document.getElementById('page-meta');
+  el.innerHTML = `
+    <div style="margin-bottom:14px"><button class="tb-btn" onclick="openMetaModal()">+ Meta</button></div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px">
+    ${goals.length ? goals.map(g => {
+      const pct = g.target_amount ? Math.min(g.saved_amount / g.target_amount * 100, 100) : 0;
+      const falta = Math.max(0, g.target_amount - g.saved_amount);
+      let prazoTxt = '';
+      if (g.target_date) {
+        const dias = Math.ceil((new Date(g.target_date) - Date.now()) / 86400000);
+        prazoTxt = dias > 0 ? `${dias} dias restantes` : (dias === 0 ? 'é hoje!' : 'prazo vencido');
+      }
+      return `<div class="cc" style="border-top:3px solid ${PERSON_COLOR[g.person] || 'var(--w)'}">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+          <div style="font-size:14px;font-weight:700">${esc(g.title)}</div>
+          <span style="display:flex;gap:4px"><button class="ab" onclick="editMeta(${g.id})">✎</button><button class="ab dl" onclick="delMeta(${g.id})">×</button></span>
+        </div>
+        <div style="font-size:10px;color:var(--tx3);margin-bottom:10px"><span class="bd" style="background:${(PERSON_COLOR[g.person]||'var(--w)')}22;color:${PERSON_COLOR[g.person]||'var(--w)'}">${esc(g.person)}</span>${g.target_date ? ' · ' + prazoTxt : ''}</div>
+        <div style="font-size:22px;font-weight:800;margin-bottom:2px">${f$(g.saved_amount)}</div>
+        <div style="font-size:11px;color:var(--tx3);margin-bottom:8px">de ${f$(g.target_amount)} · ${pct.toFixed(0)}%</div>
+        <div class="pbar" style="margin-bottom:8px"><div style="width:${pct}%;background:linear-gradient(90deg,var(--p),var(--t))"></div></div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:11px;color:var(--tx3)">Falta ${f$(falta)}</span>
+          <button class="btn btn-g" style="font-size:11px;padding:5px 10px" onclick="metaAdd(${g.id})">+ Guardar</button>
+        </div>
+        ${g.notes ? `<div style="font-size:10px;color:var(--tx3);margin-top:8px;border-top:1px solid var(--brd);padding-top:6px">${esc(g.notes)}</div>` : ''}
+      </div>`;
+    }).join('') : '<div class="cc emp">Nenhuma meta ainda. Que tal criar a primeira?</div>'}
+    </div>`;
+}
+
+/* ═══ PROJEÇÃO ═══ */
+function renderProj() {
+  const el = document.getElementById('page-proj');
+  // Base: receita e despesa fixas mensais (referência exibida no topo)
+  const recFixa = entries.filter(e => e.kind === 'receita' && e.recurring === 'Mensal').reduce((s, e) => s + +e.amount, 0);
+  const despFixa = entries.filter(e => e.kind === 'despesa' && e.recurring === 'Mensal').reduce((s, e) => s + +e.amount, 0);
+  // Projeta 18 meses à frente usando monthMovements (pega fixos, período e parcelas)
+  const startKey = new Date().toISOString().slice(0, 7);
+  const [sy, sm] = startKey.split('-').map(Number);
+  const rows = [];
+  let acumulado = 0;
+  for (let i = 0; i < 18; i++) {
+    const d = new Date(sy, (sm - 1) + i, 1);
+    const mk = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+    const movs = monthMovements(mk);
+    const parcelasMes = movs.filter(m => m.source === 'parcela').reduce((s, m) => s + m.amount, 0);
+    const receita = movs.filter(m => m.kind === 'receita').reduce((s, m) => s + m.amount, 0);
+    const despesa = movs.filter(m => m.kind === 'despesa').reduce((s, m) => s + m.amount, 0);
+    const investMes = movs.filter(m => m.kind === 'investimento').reduce((s, m) => s + m.amount, 0);
+    const saldo = receita - despesa - investMes;
+    acumulado += saldo;
+    rows.push({ mk, receita, despesa, parcelasMes, saldo, acumulado });
+  }
+  const maxV = Math.max(...rows.map(r => Math.max(r.receita, r.despesa)), 1);
+
+  el.innerHTML = `
+    <div class="cc" style="margin-bottom:14px;background:#8b5cf611;border-left:3px solid var(--p)">
+      <div style="font-size:12px;line-height:1.6">
+        Projeção baseada nas <strong>receitas e despesas fixas (mensais)</strong> + <strong>parcelas</strong> que você cadastrou.
+        Receita fixa: <strong class="c-ok">${f$(recFixa)}/mês</strong> · Despesa fixa: <strong class="c-no">${f$(despFixa)}/mês</strong>.
+        À medida que as parcelas terminam, sobra mais no fim do mês.
+      </div>
+    </div>
+    <div class="cc" style="margin-bottom:14px">
+      <h3 style="font-size:13px;font-weight:700;margin-bottom:12px">Sobra Mensal (Receita − Despesa − Parcelas)</h3>
+      <div class="bar-ch" style="height:160px">
+        ${rows.slice(0, 12).map(r => `
+          <div class="bar-it" style="display:flex;flex-direction:column;align-items:center;justify-content:flex-end">
+            <div style="font-size:8px;font-weight:700;color:${r.saldo >= 0 ? 'var(--ok)' : 'var(--no)'}">${f$(r.saldo)}</div>
+            <div style="width:60%;background:${r.saldo >= 0 ? 'var(--ok)' : 'var(--no)'};height:${Math.max(Math.abs(r.saldo) / maxV * 110, 3)}px;border-radius:4px 4px 0 0"></div>
+            <div class="bar-l">${monthLabel(r.mk)}</div>
+          </div>`).join('')}
+      </div>
+    </div>
+    <div class="tc"><table><thead><tr><th>Mês</th><th style="text-align:right">Receita</th><th style="text-align:right">Despesa Fixa</th><th style="text-align:right">Parcelas</th><th style="text-align:right">Sobra no Mês</th><th style="text-align:right">Acumulado</th></tr></thead><tbody>
+    ${rows.map(r => `<tr>
+      <td style="font-weight:600">${monthLabel(r.mk)}</td>
+      <td class="mn-f c-ok" style="text-align:right">${f$(r.receita)}</td>
+      <td class="mn-f c-no" style="text-align:right">${f$(r.despesa - r.parcelasMes)}</td>
+      <td class="mn-f c-w" style="text-align:right">${f$(r.parcelasMes)}</td>
+      <td class="mn-f" style="text-align:right;font-weight:700;color:${r.saldo >= 0 ? 'var(--ok)' : 'var(--no)'}">${f$(r.saldo)}</td>
+      <td class="mn-f" style="text-align:right;color:${r.acumulado >= 0 ? 'var(--ok)' : 'var(--no)'}">${f$(r.acumulado)}</td>
+    </tr>`).join('')}
+    </tbody></table></div>`;
+}
+
+/* ═══ RESUMO ANUAL (12 meses) ═══ */
+function renderAno() {
+  const el = document.getElementById('page-ano');
+  if (!el) return;
+  // Últimos 12 meses até o mês atual
+  const now = new Date();
+  const rows = [];
+  let totR = 0, totD = 0, totI = 0;
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const mk = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+    const movs = monthMovements(mk);
+    const rec = movs.filter(m => m.kind === 'receita').reduce((s, m) => s + m.amount, 0);
+    const desp = movs.filter(m => m.kind === 'despesa').reduce((s, m) => s + m.amount, 0);
+    const invM = movs.filter(m => m.kind === 'investimento').reduce((s, m) => s + m.amount, 0);
+    totR += rec; totD += desp; totI += invM;
+    rows.push({ mk, rec, desp, inv: invM, saldo: rec - desp - invM });
+  }
+  const maxV = Math.max(...rows.map(r => Math.max(r.rec, r.desp)), 1);
+  const saldoAno = totR - totD - totI;
+  const mediaMensal = saldoAno / 12;
+
+  el.innerHTML = `
+    <div class="kg" style="margin-bottom:14px">
+      <div class="kp"><div class="kp-l">Receitas (12m)</div><div class="kp-v c-ok">${f$(totR)}</div></div>
+      <div class="kp"><div class="kp-l">Despesas (12m)</div><div class="kp-v c-no">${f$(totD)}</div></div>
+      <div class="kp"><div class="kp-l">📈 Investido (12m)</div><div class="kp-v c-p">${f$(totI)}</div></div>
+      <div class="kp"><div class="kp-l">Saldo (12m)</div><div class="kp-v" style="color:${saldoAno >= 0 ? 'var(--ok)' : 'var(--no)'}">${f$(saldoAno)}</div></div>
+      <div class="kp"><div class="kp-l">Média Mensal</div><div class="kp-v" style="color:${mediaMensal >= 0 ? 'var(--ok)' : 'var(--no)'}">${f$(mediaMensal)}</div><div class="kp-s">sobra/mês</div></div>
+    </div>
+    <div class="cc" style="margin-bottom:14px">
+      <h3 style="font-size:13px;font-weight:700;margin-bottom:12px">Receita vs Despesa — 12 meses</h3>
+      <div class="bar-ch" style="height:180px">
+        ${rows.map(r => `
+          <div class="bar-it" style="display:flex;flex-direction:column;align-items:center;justify-content:flex-end">
+            <div style="display:flex;gap:2px;align-items:flex-end;height:140px">
+              <div style="width:9px;background:var(--ok);height:${Math.max(r.rec / maxV * 130, 2)}px;border-radius:3px 3px 0 0" title="Receita ${f$(r.rec)}"></div>
+              <div style="width:9px;background:var(--no);height:${Math.max(r.desp / maxV * 130, 2)}px;border-radius:3px 3px 0 0" title="Despesa ${f$(r.desp)}"></div>
+            </div>
+            <div class="bar-l">${monthLabel(r.mk)}</div>
+          </div>`).join('')}
+      </div>
+      <div style="display:flex;gap:16px;justify-content:center;margin-top:8px;font-size:10px;color:var(--tx3)">
+        <span><span style="display:inline-block;width:10px;height:10px;background:var(--ok);border-radius:2px"></span> Receita</span>
+        <span><span style="display:inline-block;width:10px;height:10px;background:var(--no);border-radius:2px"></span> Despesa</span>
+      </div>
+    </div>
+    <div class="tc"><table><thead><tr><th>Mês</th><th style="text-align:right">Receitas</th><th style="text-align:right">Despesas</th><th style="text-align:right">Saldo</th></tr></thead><tbody>
+    ${rows.slice().reverse().map(r => `<tr>
+      <td style="font-weight:600">${monthLabel(r.mk)}</td>
+      <td class="mn-f c-ok" style="text-align:right">${f$(r.rec)}</td>
+      <td class="mn-f c-no" style="text-align:right">${f$(r.desp)}</td>
+      <td class="mn-f" style="text-align:right;font-weight:700;color:${r.saldo >= 0 ? 'var(--ok)' : 'var(--no)'}">${f$(r.saldo)}</td>
+    </tr>`).join('')}
+    </tbody></table></div>`;
+}
+
+function lancFillCats() {
+  const kind = document.getElementById('lanc-kind').value;
+  const sel = document.getElementById('lanc-cat');
+  const list = categories.filter(c => c.kind === kind);
+  sel.innerHTML = list.map(c => `<option>${esc(c.name)}</option>`).join('') || '<option>Outros</option>';
+}
+function lancToggleMeses() {
+  const rec = document.getElementById('lanc-rec').value;
+  document.getElementById('lanc-meses-row').style.display = rec === 'Periodo' ? 'flex' : 'none';
+}
+function openLancModal() {
+  document.getElementById('lanc-id').value = '';
+  document.getElementById('m-lanc-title').textContent = 'Novo Lançamento';
+  ['lanc-amount','lanc-desc','lanc-due'].forEach(x => document.getElementById(x).value = '');
+  document.getElementById('lanc-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('lanc-kind').value = 'despesa';
+  document.getElementById('lanc-person').value = 'Igor';
+  document.getElementById('lanc-rec').value = 'Não';
+  document.getElementById('lanc-nature').value = 'Variável';
+  document.getElementById('lanc-meses').value = '12';
+  lancToggleMeses();
+  document.getElementById('lanc-status').value = 'Pago';
+  lancFillCats();
+  openM('m-lanc');
+}
+function editLanc(id) {
+  const e = entries.find(x => x.id === id); if (!e) return;
+  document.getElementById('lanc-id').value = id;
+  document.getElementById('m-lanc-title').textContent = 'Editar Lançamento';
+  document.getElementById('lanc-kind').value = e.kind;
+  lancFillCats();
+  document.getElementById('lanc-person').value = e.person;
+  document.getElementById('lanc-date').value = e.entry_date;
+  document.getElementById('lanc-amount').value = e.amount;
+  document.getElementById('lanc-cat').value = e.category || '';
+  document.getElementById('lanc-rec').value = e.recurring || 'Não';
+  document.getElementById('lanc-nature').value = e.nature || 'Variável';
+  document.getElementById('lanc-meses').value = e.recur_months || 12;
+  lancToggleMeses();
+  document.getElementById('lanc-desc').value = e.description || '';
+  document.getElementById('lanc-status').value = e.status || 'Pago';
+  document.getElementById('lanc-due').value = e.due_date || '';
+  openM('m-lanc');
+}
+async function saveLanc() {
+  const id = document.getElementById('lanc-id').value;
+  const obj = {
+    kind: document.getElementById('lanc-kind').value,
+    person: document.getElementById('lanc-person').value,
+    entry_date: document.getElementById('lanc-date').value,
+    amount: +document.getElementById('lanc-amount').value || 0,
+    category: document.getElementById('lanc-cat').value,
+    recurring: document.getElementById('lanc-rec').value,
+    nature: document.getElementById('lanc-nature').value,
+    recur_months: document.getElementById('lanc-rec').value === 'Periodo' ? (+document.getElementById('lanc-meses').value || 1) : null,
+    description: document.getElementById('lanc-desc').value,
+    status: document.getElementById('lanc-status').value,
+    due_date: document.getElementById('lanc-due').value || null,
+  };
+  if (!obj.amount) { toast('Informe o valor', 'no'); return; }
+  if (!obj.entry_date) { toast('Informe a data', 'no'); return; }
+  let { error } = id ? await sb.from('pf_entries').update(obj).eq('id', +id) : await sb.from('pf_entries').insert(obj);
+  // Fallback se a coluna due_date ainda não existe
+  if (error && /due_date/.test(error.message || '')) {
+    delete obj.due_date;
+    ({ error } = id ? await sb.from('pf_entries').update(obj).eq('id', +id) : await sb.from('pf_entries').insert(obj));
+    if (!error) toast('Salvo (rode o SQL de vencimento p/ usar esse campo)', 'no');
+  }
+  // Fallback se a coluna recur_months ainda não existe
+  if (error && /recur_months/.test(error.message || '')) {
+    delete obj.recur_months;
+    ({ error } = id ? await sb.from('pf_entries').update(obj).eq('id', +id) : await sb.from('pf_entries').insert(obj));
+    if (!error) toast('Salvo (rode o SQL de recorrência com prazo)', 'no');
+  }
+  // Fallback se a coluna nature ainda não existe
+  if (error && /nature/.test(error.message || '')) {
+    delete obj.nature;
+    ({ error } = id ? await sb.from('pf_entries').update(obj).eq('id', +id) : await sb.from('pf_entries').insert(obj));
+    if (!error) toast('Salvo (rode o SQL fixa-variavel p/ usar a classificação)', 'no');
+  }
+  if (error) { toast('Erro: ' + error.message, 'no'); return; }
+  closeM('m-lanc'); await loadAll(); toast('Salvo!', 'ok');
+}
+async function delLanc(id) { if (!confirm('Excluir lançamento?')) return; await sb.from('pf_entries').delete().eq('id', id); await loadAll(); toast('Excluído'); }
+
+/* ═══ CRUD: PARCELAS ═══ */
+function parcCalc() {
+  const total = +document.getElementById('parc-total').value || 0;
+  const n = +document.getElementById('parc-n').value || 1;
+  document.getElementById('parc-val').value = (Math.round((total / n) * 100) / 100).toFixed(2);
+}
+function openParcModal() {
+  document.getElementById('parc-id').value = '';
+  document.getElementById('m-parc-title').textContent = 'Novo Parcelamento';
+  ['parc-desc','parc-total'].forEach(x => document.getElementById(x).value = '');
+  document.getElementById('parc-n').value = '12';
+  document.getElementById('parc-paid').value = '0';
+  document.getElementById('parc-start').value = new Date().toISOString().split('T')[0];
+  document.getElementById('parc-person').value = 'Igor';
+  const sel = document.getElementById('parc-cat');
+  sel.innerHTML = categories.filter(c => c.kind === 'despesa').map(c => `<option>${esc(c.name)}</option>`).join('');
+  parcCalc();
+  openM('m-parc');
+}
+function editParc(id) {
+  const p = installments.find(x => x.id === id); if (!p) return;
+  document.getElementById('parc-id').value = id;
+  document.getElementById('m-parc-title').textContent = 'Editar Parcelamento';
+  const sel = document.getElementById('parc-cat');
+  sel.innerHTML = categories.filter(c => c.kind === 'despesa').map(c => `<option>${esc(c.name)}</option>`).join('');
+  document.getElementById('parc-desc').value = p.description;
+  document.getElementById('parc-person').value = p.person;
+  document.getElementById('parc-cat').value = p.category || '';
+  document.getElementById('parc-total').value = p.total_amount;
+  document.getElementById('parc-n').value = p.installments;
+  document.getElementById('parc-paid').value = p.paid_installments || 0;
+  document.getElementById('parc-start').value = p.start_date;
+  parcCalc();
+  openM('m-parc');
+}
+async function saveParc() {
+  const id = document.getElementById('parc-id').value;
+  const total = +document.getElementById('parc-total').value || 0;
+  const n = +document.getElementById('parc-n').value || 1;
+  const obj = {
+    description: document.getElementById('parc-desc').value,
+    person: document.getElementById('parc-person').value,
+    category: document.getElementById('parc-cat').value,
+    total_amount: total,
+    installments: n,
+    installment_value: Math.round((total / n) * 100) / 100,
+    paid_installments: +document.getElementById('parc-paid').value || 0,
+    start_date: document.getElementById('parc-start').value,
+  };
+  if (!obj.description) { toast('Informe a descrição', 'no'); return; }
+  if (!total) { toast('Informe o valor total', 'no'); return; }
+  const { error } = id ? await sb.from('pf_installments').update(obj).eq('id', +id) : await sb.from('pf_installments').insert(obj);
+  if (error) { toast('Erro: ' + error.message, 'no'); return; }
+  closeM('m-parc'); await loadAll(); toast('Salvo!', 'ok');
+}
+async function parcPay(id) {
+  const p = installments.find(x => x.id === id); if (!p) return;
+  const novo = Math.min((p.paid_installments || 0) + 1, p.installments);
+  const { error } = await sb.from('pf_installments').update({ paid_installments: novo }).eq('id', id);
+  if (error) { toast('Erro: ' + error.message, 'no'); return; }
+  await loadAll(); toast(`Parcela ${novo}/${p.installments} paga`, 'ok');
+}
+async function delParc(id) { if (!confirm('Excluir parcelamento?')) return; await sb.from('pf_installments').delete().eq('id', id); await loadAll(); toast('Excluído'); }
+
+/* ═══ CRUD: METAS ═══ */
+function openMetaModal() {
+  document.getElementById('meta-id').value = '';
+  document.getElementById('m-meta-title').textContent = 'Nova Meta';
+  ['meta-title','meta-target','meta-saved','meta-notes','meta-date'].forEach(x => document.getElementById(x).value = '');
+  document.getElementById('meta-person').value = 'Ambos';
+  openM('m-meta');
+}
+function editMeta(id) {
+  const g = goals.find(x => x.id === id); if (!g) return;
+  document.getElementById('meta-id').value = id;
+  document.getElementById('m-meta-title').textContent = 'Editar Meta';
+  document.getElementById('meta-title').value = g.title;
+  document.getElementById('meta-person').value = g.person || 'Ambos';
+  document.getElementById('meta-date').value = g.target_date || '';
+  document.getElementById('meta-target').value = g.target_amount;
+  document.getElementById('meta-saved').value = g.saved_amount || 0;
+  document.getElementById('meta-notes').value = g.notes || '';
+  openM('m-meta');
+}
+async function saveMeta() {
+  const id = document.getElementById('meta-id').value;
+  const obj = {
+    title: document.getElementById('meta-title').value,
+    person: document.getElementById('meta-person').value,
+    target_date: document.getElementById('meta-date').value || null,
+    target_amount: +document.getElementById('meta-target').value || 0,
+    saved_amount: +document.getElementById('meta-saved').value || 0,
+    notes: document.getElementById('meta-notes').value,
+  };
+  if (!obj.title) { toast('Informe o objetivo', 'no'); return; }
+  const { error } = id ? await sb.from('pf_goals').update(obj).eq('id', +id) : await sb.from('pf_goals').insert(obj);
+  if (error) { toast('Erro: ' + error.message, 'no'); return; }
+  closeM('m-meta'); await loadAll(); toast('Salvo!', 'ok');
+}
+async function metaAdd(id) {
+  const g = goals.find(x => x.id === id); if (!g) return;
+  const val = prompt(`Quanto guardar para "${g.title}"? (R$)`, '');
+  if (val === null) return;
+  const add = parseFloat(val.replace(',', '.'));
+  if (isNaN(add)) { toast('Valor inválido', 'no'); return; }
+  const novo = (+g.saved_amount || 0) + add;
+  const { error } = await sb.from('pf_goals').update({ saved_amount: novo }).eq('id', id);
+  if (error) { toast('Erro: ' + error.message, 'no'); return; }
+  await loadAll(); toast(`+${f$(add)} guardado!`, 'ok');
+}
+async function delMeta(id) { if (!confirm('Excluir meta?')) return; await sb.from('pf_goals').delete().eq('id', id); await loadAll(); toast('Excluído'); }
+
+/* ═══ CRUD: CATEGORIAS ═══ */
+async function saveCat() {
+  const obj = { name: document.getElementById('cat-name').value.trim(), kind: document.getElementById('cat-kind').value };
+  if (!obj.name) { toast('Informe o nome', 'no'); return; }
+  const { error } = await sb.from('pf_categories').insert(obj);
+  if (error) { toast('Erro: ' + error.message, 'no'); return; }
+  document.getElementById('cat-name').value = '';
+  closeM('m-cat'); await loadAll(); toast('Categoria criada!', 'ok');
+}
+async function delCat(id) { if (!confirm('Excluir categoria?')) return; await sb.from('pf_categories').delete().eq('id', id); await loadAll(); toast('Excluído'); }
+
+/* ═══ INIT ═══ */
+checkSession();
+</script>
+</body>
+</html>
